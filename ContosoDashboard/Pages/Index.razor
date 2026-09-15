@@ -31,6 +31,14 @@
             <div class="col-md-3 mb-3">
                 <div class="card summary-card">
                     <div class="card-body">
+                        <h5 class="card-title">Documents</h5>
+                        <p class="card-text display-4 text-success">@summary.DocumentCount</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card summary-card">
+                    <div class="card-body">
                         <h5 class="card-title">Due Today</h5>
                         <p class="card-text display-4 text-warning">@summary.TasksDueToday</p>
                     </div>
@@ -118,6 +126,30 @@
             }
         </div>
     </div>
+
+    <div class="row mt-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h3>Recent Documents</h3>
+                <a href="/documents">View all</a>
+            </div>
+            @if (recentDocuments.Count == 0)
+            {
+                <p class="text-muted">No recent documents.</p>
+            }
+            else
+            {
+                <div class="list-group">
+                    @foreach (var document in recentDocuments)
+                    {
+                        <a class="list-group-item list-group-item-action" href="/api/documents/@document.DocumentId/download">
+                            <strong>@document.Title</strong> <span class="text-muted">(@document.Category)</span>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
 </div>
 
 @code {
@@ -126,6 +158,7 @@
     private List<Notification>? recentNotifications;
     private string userName = "User";
     private int currentUserId = 0;
+    private List<DocumentListItem> recentDocuments = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -144,6 +177,7 @@
         if (currentUserId > 0)
         {
             summary = await DashboardService.GetDashboardSummaryAsync(currentUserId);
+            recentDocuments = await DashboardService.GetRecentDocumentsAsync(currentUserId);
             announcements = await DashboardService.GetActiveAnnouncementsAsync();
             recentNotifications = await NotificationService.GetUserNotificationsAsync(currentUserId);
         }

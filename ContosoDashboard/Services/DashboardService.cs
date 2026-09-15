@@ -8,6 +8,7 @@ public interface IDashboardService
 {
     Task<DashboardSummary> GetDashboardSummaryAsync(int userId);
     Task<List<Announcement>> GetActiveAnnouncementsAsync();
+    Task<List<DocumentListItem>> GetRecentDocumentsAsync(int userId);
 }
 
 public class DashboardService : IDashboardService
@@ -40,7 +41,10 @@ public class DashboardService : IDashboardService
                 .CountAsync(),
 
             UnreadNotifications = await _context.Notifications
-                .CountAsync(n => n.UserId == userId && !n.IsRead)
+                .CountAsync(n => n.UserId == userId && !n.IsRead),
+
+            DocumentCount = await _context.Documents
+                .CountAsync(d => d.UploadedByUserId == userId && d.IsAvailable && d.ScanStatus == Models.DocumentScanStatuses.Clean)
         };
 
         return summary;
@@ -59,6 +63,17 @@ public class DashboardService : IDashboardService
             .Take(5)
             .ToListAsync();
     }
+
+    public async Task<List<DocumentListItem>> GetRecentDocumentsAsync(int userId)
+    {
+        return await _context.Documents
+            .Include(d => d.Project)
+            .Where(d => d.UploadedByUserId == userId && d.IsAvailable && d.ScanStatus == Models.DocumentScanStatuses.Clean)
+            .OrderByDescending(d => d.UploadedDate)
+            .Take(5)
+            .Select(d => new DocumentListItem(d.DocumentId, d.Title, d.Category, d.OriginalFileName, d.FileType, d.FileSize, d.UploadedDate, d.Project == null ? null : d.Project.Name, d.ProjectId, d.ScanStatus))
+            .ToListAsync();
+    }
 }
 
 public class DashboardSummary
@@ -67,4 +82,5 @@ public class DashboardSummary
     public int TasksDueToday { get; set; }
     public int ActiveProjects { get; set; }
     public int UnreadNotifications { get; set; }
+    public int DocumentCount { get; set; }
 }

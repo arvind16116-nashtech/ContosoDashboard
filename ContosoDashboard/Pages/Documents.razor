@@ -1,0 +1,207 @@
+@page "/documents"
+@using System.Security.Claims
+@using ContosoDashboard.Models
+@using ContosoDashboard.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDocumentService DocumentService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Documents - ContosoDashboard</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Documents</h1>
+            <p class="text-muted mb-0">Upload and find documents you are authorized to access.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(successMessage))
+    {
+        <div class="alert alert-success" role="status">@successMessage</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header"><h2 class="h5 mb-0">Upload document</h2></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="document-file">File</label>
+                    <InputFile id="document-file" @key="fileInputKey" OnChange="OnFileSelected" />
+                    @if (selectedFile is not null)
+                    {
+                        <small class="text-muted d-block mt-1">@selectedFile.Name (@FormatSize(selectedFile.Size))</small>
+                    }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="document-title">Title</label>
+                    <input id="document-title" class="form-control" @bind="title" maxlength="255" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="document-category">Category</label>
+                    <select id="document-category" class="form-select" @bind="category">
+                        @foreach (var option in categories)
+                        {
+                            <option value="@option">@option</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="document-description">Description</label>
+                    <input id="document-description" class="form-control" @bind="description" maxlength="2000" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="document-tags">Tags</label>
+                    <input id="document-tags" class="form-control" @bind="tags" maxlength="1000" placeholder="e.g. planning, Q4" />
+                </div>
+                <div class="col-12 d-flex align-items-center gap-3">
+                    <button class="btn btn-primary" disabled="@isUploading" @onclick="UploadAsync">
+                        @if (isUploading)
+                        {
+                            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                            <span> Uploading...</span>
+                        }
+                        else
+                        {
+                            <span><i class="bi bi-cloud-arrow-up"></i> Upload</span>
+                        }
+                    </button>
+                    @if (isUploading)
+                    {
+                        <span class="text-muted" role="status">Validating and storing your document...</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">My accessible documents</h2>
+            <input class="form-control" style="max-width: 280px" placeholder="Search documents" @bind="search" @bind:event="oninput" @onchange="LoadDocumentsAsync" />
+        </div>
+        <div class="card-body p-0">
+            @if (documents is null)
+            {
+                <p class="p-3 text-muted">Loading documents...</p>
+            }
+            else if (documents.Count == 0)
+            {
+                <p class="p-3 text-muted">No accessible documents found.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr><th>Title</th><th>Category</th><th>Project</th><th>Size</th><th>Uploaded</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var document in documents)
+                            {
+                                <tr>
+                                    <td><strong>@document.Title</strong><br /><small class="text-muted">@document.OriginalFileName</small></td>
+                                    <td>@document.Category</td>
+                                    <td>@(document.ProjectName ?? "Personal")</td>
+                                    <td>@FormatSize(document.FileSize)</td>
+                                    <td>@document.UploadedDate.ToLocalTime().ToString("MMM dd, yyyy")</td>
+                                    <td class="text-nowrap">
+                                        <a class="btn btn-sm btn-outline-secondary me-1" href="/api/documents/@document.DocumentId/preview" target="_blank" title="Preview"><i class="bi bi-eye"></i></a>
+                                        <a class="btn btn-sm btn-outline-primary" href="/api/documents/@document.DocumentId/download" title="Download"><i class="bi bi-download"></i></a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly string[] categories = ["Project Documents", "Team Resources", "Personal Files", "Reports", "Presentations", "Other"];
+    private IBrowserFile? selectedFile;
+    private List<DocumentListItem>? documents;
+    private string title = string.Empty;
+    private string category = "Personal Files";
+    private string? description;
+    private string? tags;
+    private string? search;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isUploading;
+    private int currentUserId;
+    private int fileInputKey;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (int.TryParse(state.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) currentUserId = userId;
+        await LoadDocumentsAsync();
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs args)
+    {
+        selectedFile = args.File;
+        errorMessage = null;
+        successMessage = null;
+        if (string.IsNullOrWhiteSpace(title)) title = Path.GetFileNameWithoutExtension(selectedFile.Name);
+    }
+
+    private async Task UploadAsync()
+    {
+        errorMessage = null;
+        successMessage = null;
+        if (selectedFile is null) { errorMessage = "Select a file to upload."; return; }
+        if (string.IsNullOrWhiteSpace(title)) { errorMessage = "A document title is required."; return; }
+        isUploading = true;
+        try
+        {
+            var fileName = selectedFile.Name;
+            var contentType = selectedFile.ContentType;
+            await using var browserStream = selectedFile.OpenReadStream(25 * 1024 * 1024);
+            await using var memoryStream = new MemoryStream();
+            await browserStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            var formFile = new FormFile(memoryStream, 0, memoryStream.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+            var result = await DocumentService.UploadAsync(currentUserId, formFile, new DocumentUploadMetadata(title, description, category, null, null, tags));
+            if (!result.Succeeded) { errorMessage = result.Error; return; }
+            successMessage = "Document uploaded successfully.";
+            selectedFile = null;
+            title = string.Empty;
+            description = null;
+            tags = null;
+            fileInputKey++;
+            await LoadDocumentsAsync();
+        }
+        catch (IOException)
+        {
+            errorMessage = "The file could not be read. Please try again.";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private Task LoadDocumentsAsync()
+        => currentUserId == 0 ? Task.CompletedTask : LoadDocumentsCoreAsync();
+
+    private async Task LoadDocumentsCoreAsync()
+        => documents = await DocumentService.GetAccessibleAsync(currentUserId, search);
+
+    private static string FormatSize(long bytes)
+        => bytes < 1024 * 1024 ? $"{bytes / 1024d:0.#} KB" : $"{bytes / 1024d / 1024d:0.#} MB";
+}

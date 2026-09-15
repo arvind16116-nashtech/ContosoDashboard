@@ -1,0 +1,37 @@
+@page "/documents/shared"
+@using System.Security.Claims
+@using ContosoDashboard.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDocumentService DocumentService
+
+<PageTitle>Shared Documents - ContosoDashboard</PageTitle>
+<h1>Shared with Me</h1>
+@if (documents is null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (documents.Count == 0)
+{
+    <p class="text-muted">No documents have been shared with you.</p>
+}
+else
+{
+    <div class="table-responsive"><table class="table table-hover"><thead><tr><th>Title</th><th>Category</th><th>Uploaded</th><th>Actions</th></tr></thead><tbody>
+    @foreach (var document in documents)
+    {
+        <tr><td>@document.Title<br /><small class="text-muted">@document.OriginalFileName</small></td><td>@document.Category</td><td>@document.UploadedDate.ToLocalTime().ToString("MMM dd, yyyy")</td><td><a class="btn btn-sm btn-outline-primary" href="/api/documents/@document.DocumentId/download"><i class="bi bi-download"></i></a></td></tr>
+    }
+    </tbody></table></div>
+}
+
+@code {
+    private List<DocumentListItem>? documents;
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (int.TryParse(state.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            documents = await DocumentService.GetAccessibleAsync(userId);
+    }
+}

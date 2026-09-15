@@ -1,0 +1,38 @@
+@page "/admin/documents/activity"
+@using System.Security.Claims
+@using ContosoDashboard.Models
+@using ContosoDashboard.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Administrator")]
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDocumentService DocumentService
+
+<PageTitle>Document Activity - ContosoDashboard</PageTitle>
+<h1>Document Activity</h1>
+@if (activity is null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (activity.Count == 0)
+{
+    <p class="text-muted">No document activity recorded.</p>
+}
+else
+{
+    <div class="table-responsive"><table class="table table-hover"><thead><tr><th>Document</th><th>Activity</th><th>Actor</th><th>Occurred</th></tr></thead><tbody>
+    @foreach (var item in activity)
+    {
+        <tr><td>@item.Document.Title</td><td>@item.ActivityType</td><td>@item.ActorUserId</td><td>@item.OccurredDate.ToLocalTime().ToString("g")</td></tr>
+    }
+    </tbody></table></div>
+}
+
+@code {
+    private List<ContosoDashboard.Models.DocumentActivity>? activity;
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (int.TryParse(state.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            activity = await DocumentService.GetActivityAsync(userId);
+    }
+}
