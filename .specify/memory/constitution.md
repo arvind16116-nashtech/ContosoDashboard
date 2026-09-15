@@ -1,50 +1,53 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: placeholder → 1.0.0
+- Modified principles: n/a → 5 principles defined
+- Added sections: Security Requirements, Development Workflow
+- Removed sections: none
+- Follow-up TODOs: none
+-->
+
+# ContosoDashboard Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Secure-by-Default Access
+The project MUST treat security as a non-negotiable requirement for every feature. Authentication, authorization, and data access checks MUST be enforced at both the page and service layers so users see only data they are allowed to access. This protects training scenarios from common IDOR and authorization bypass issues while preserving the app’s learning objectives.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Offline-First Architecture
+ContosoDashboard MUST remain compatible with offline, local-only development. Work must rely on local filesystem and local database patterns unless a feature explicitly adds an isolated cloud abstraction. The project MUST prefer infrastructure abstractions over direct environment coupling, so future migration remains possible without rewriting business logic.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Evidence-Driven Delivery
+Every feature change MUST be validated with fresh evidence before completion. The team MUST run the relevant restore, build, and startup verification commands, and MUST record whether the project still builds cleanly and starts without runtime errors. This requirement prevents silent regressions and ensures all work is grounded in observed behavior.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Minimal-Complexity Design
+The project MUST favor the simplest design that satisfies the current feature and training goal. New abstractions, services, or frameworks MUST be justified by real complexity or a documented migration need. The application architecture MUST remain understandable to students and maintainable by small teams working within a single Blazor Server application.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Traceable Feature Work
+Every user-visible improvement MUST be grounded in a concrete specification, plan, and task trail. Feature work MUST be broken down so it can be understood, tested, and reviewed independently. This reduces ambiguity and preserves the repository’s purpose as a Spec-Driven Development example.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Security Requirements
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- The application MUST protect authenticated and non-authenticated routes with explicit authorization checks.
+- Role-based policies MUST be used for employee, team lead, project manager, and administrator access paths.
+- Service-layer authorization MUST validate access before returning project, task, or notification data.
+- Files stored for feature work MUST remain outside the web root unless a feature explicitly requires a different approved pattern.
+- Generated storage paths MUST avoid direct user-controlled naming that can create path traversal or duplicate-key issues.
+- Mock authentication MUST remain clearly marked as training-only and MUST NOT be treated as production identity infrastructure.
+- Security headers and safe defaults MUST remain enabled for the web application.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Development Workflow
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- New work MUST begin with a feature specification that states the user value, scope, and acceptance criteria.
+- The technical plan MUST describe the architecture and implementation approach before coding begins.
+- Tasks MUST be organized so implementation can proceed in coherent, independently verifiable increments.
+- Code changes MUST be validated with the smallest relevant build or runtime check before completion.
+- Documentation updates MUST reflect user-facing behavior and architectural changes when they affect the app’s training value or operating model.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This Constitution governs all repository decisions related to product behavior, security posture, architecture, and feature planning. When a conflict exists between this document and convenience, speed, or local preference, the Constitution takes precedence. All changes must preserve the project’s educational purpose, training-safe architecture, and security expectations.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Amendments require a documented rationale, a version update, and a clear statement of the effect on the project. Compliance review is expected for major changes to security, storage, authentication, and project structure. The project MUST remain aligned with the repository’s Spec Kit workflow: specification, planning, tasking, implementation, and evidence-based verification.
+
+**Version**: 1.0.0 | **Ratified**: 2026-09-15 | **Last Amended**: 2026-09-15
